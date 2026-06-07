@@ -1,0 +1,135 @@
+<mujoco model="gofa_crb15000">
+  <compiler angle="radian" meshdir="meshes"/>
+
+  <option gravity="0 0 -9.81" timestep="0.002" integrator="implicit"/>
+
+  <default>
+    <joint damping="0.1" armature="0.01"/>
+    <geom rgba="0.9 0.8 0.2 1" contype="1" conaffinity="1"/>
+  </default>
+
+  <visual>
+    <global offwidth="1200" offheight="900"/>
+    <quality offsamples="4"/>
+  </visual>
+
+  <asset>
+    <!-- Base + Link 1~6 collision meshes (STL) -->
+    <mesh name="mesh_base_link" file="collision/base_link.stl"/>
+    <mesh name="mesh_link_1"    file="collision/link_1.stl"/>
+    <mesh name="mesh_link_2"    file="collision/link_2.stl"/>
+    <mesh name="mesh_link_3"    file="collision/link_3.stl"/>
+    <mesh name="mesh_link_4"    file="collision/link_4.stl"/>
+    <mesh name="mesh_link_5"    file="collision/link_5.stl"/>
+    <mesh name="mesh_link_6"    file="collision/link_6.stl"/>
+  </asset>
+
+  <worldbody>
+    <light directional="true" pos="0 0 2" dir="0 0 -1"/>
+    <light directional="true" pos="2 -1 1" dir="-1 1 -1"/>
+
+    <!-- Debug ground plane -->
+    <geom type="plane" size="2 2 0.01" pos="0 0 0" rgba="0.3 0.3 0.4 1"/>
+
+    <!-- ============================================ -->
+    <!-- Base link — fixed to world (no free joint)    -->
+    <!-- ============================================ -->
+    <body name="base_link" pos="0 0 0">
+      <inertial mass="13.5" pos="-0.025 0 0.110"
+                fullinertia="0.10 0.14 0.13 0.0005 0.0003 -0.0002"/>
+      <geom type="mesh" mesh="mesh_base_link"/>
+
+      <!-- Joint 1: ±270°, 120°/s, axis (0,0,1) -->
+      <body name="link_1" pos="0 0 0.218">
+        <joint name="joint_1" type="hinge" axis="0 0 1"
+               limited="true" range="-4.7124 4.7124"/>
+        <inertial mass="11.8" pos="0.001 -0.001 -0.060"
+                  fullinertia="0.11 0.09 0.09 -0.00005 0.0003 -0.0001"/>
+        <geom type="mesh" mesh="mesh_link_1"/>
+
+        <!-- Joint 2: -140°~90°, 120°/s, axis (0,1,0) -->
+        <body name="link_2" pos="0.150 0 0.182">
+          <joint name="joint_2" type="hinge" axis="0 1 0"
+                 limited="true" range="-2.4435 1.5708"/>
+          <inertial mass="17.5" pos="-0.001 0 0.250"
+                    fullinertia="0.49 0.46 0.09 0.00001 0.0002 -0.002"/>
+          <geom type="mesh" mesh="mesh_link_2"/>
+
+          <!-- Joint 3: -225°~85°, 125°/s, axis (0,1,0) -->
+          <body name="link_3" pos="0 0 0.707">
+            <joint name="joint_3" type="hinge" axis="0 1 0"
+                   limited="true" range="-3.9270 1.4835"/>
+            <inertial mass="7.5" pos="0.100 0.001 0.032"
+                      fullinertia="0.025 0.09 0.08 0.0001 -0.0056 0.0001"/>
+            <geom type="mesh" mesh="mesh_link_3"/>
+
+            <!-- Joint 4: ±200°, 200°/s, axis (1,0,0) -->
+            <body name="link_4" pos="0 0 0.110">
+              <joint name="joint_4" type="hinge" axis="1 0 0"
+                     limited="true" range="-3.4907 3.4907"/>
+              <inertial mass="2.7" pos="0.380 0.001 0.005"
+                        fullinertia="0.006 0.012 0.011 -0.0001 0.0004 -0.00002"/>
+              <geom type="mesh" mesh="mesh_link_4"/>
+
+              <!-- Joint 5: ±130°, 200°/s, axis (0,1,0) -->
+              <body name="link_5" pos="0.637 0 0">
+                <joint name="joint_5" type="hinge" axis="0 1 0"
+                       limited="true" range="-2.2689 2.2689"/>
+                <inertial mass="0.63" pos="0.011 -0.001 0"
+                          fullinertia="0.0005 0.0011 0.0009 -0.00001 0 0"/>
+                <geom type="mesh" mesh="mesh_link_5"/>
+
+                <!-- Joint 6: ±270°, 200°/s, axis (1,0,0) -->
+                <body name="link_6" pos="0.101 0 0.080">
+                  <joint name="joint_6" type="hinge" axis="1 0 0"
+                         limited="true" range="-4.7124 4.7124"/>
+                  <inertial mass="0.14" pos="-0.007 0 0"
+                            fullinertia="0.001 0.001 0.001 0 0 0"/>
+                  <geom type="mesh" mesh="mesh_link_6"/>
+
+                  <!-- End-effector reference frame (tool0) -->
+                  <body name="tool0" pos="0 0 0" quat="0.7071 0 0.7071 0">
+                    <geom type="sphere" size="0.02" rgba="1 0 0 1" contype="0" conaffinity="0"/>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <!--
+    Position actuators (MuJoCo Menagerie pattern)
+    Built-in PD servo: torque = kp*(ctrl - qpos) - kv*qvel
+    ctrl = target joint angle in rad directly, no gear, no manual PD
+    kp/kv descending from proximal (heavy) to distal (light) joints
+  -->
+  <actuator>
+    <position name="act_joint_1" joint="joint_1"
+              kp="4000" kv="400"
+              ctrlrange="-4.7124 4.7124"
+              forcerange="-400 400"/>
+    <position name="act_joint_2" joint="joint_2"
+              kp="4000" kv="400"
+              ctrlrange="-2.4435 1.5708"
+              forcerange="-400 400"/>
+    <position name="act_joint_3" joint="joint_3"
+              kp="3000" kv="300"
+              ctrlrange="-3.9270 1.4835"
+              forcerange="-250 250"/>
+    <position name="act_joint_4" joint="joint_4"
+              kp="2500" kv="250"
+              ctrlrange="-3.4907 3.4907"
+              forcerange="-100 100"/>
+    <position name="act_joint_5" joint="joint_5"
+              kp="2000" kv="200"
+              ctrlrange="-2.2689 2.2689"
+              forcerange="-80 80"/>
+    <position name="act_joint_6" joint="joint_6"
+              kp="1500" kv="150"
+              ctrlrange="-4.7124 4.7124"
+              forcerange="-50 50"/>
+  </actuator>
+</mujoco>

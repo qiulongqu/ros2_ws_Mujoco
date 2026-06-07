@@ -1,0 +1,28 @@
+# ros2_control controller configuration for GoFa CRB15000 + MuJoCo
+# Follows the official mujoco_ros2_control_demos pattern:
+#   - controller_manager.ros__parameters has ONLY update_rate
+#   - Each controller has its own ros__parameters with type + config
+#   - Spawners use --param-file to load this file
+
+controller_manager:
+  ros__parameters:
+    update_rate: 100
+
+joint_state_broadcaster:
+  ros__parameters:
+    update_rate: 50
+    type: joint_state_broadcaster/JointStateBroadcaster
+
+# ForwardCommandController: simple position control (official demo pattern)
+# Publish commands: ros2 topic pub /position_controller/commands std_msgs/msg/Float64MultiArray "data: [0.5, -0.3, 0.2, 0, 0, 0]"
+position_controller:
+  ros__parameters:
+    type: forward_command_controller/ForwardCommandController
+    interface_name: position
+    joints:
+      - joint_1
+      - joint_2
+      - joint_3
+      - joint_4
+      - joint_5
+      - joint_6

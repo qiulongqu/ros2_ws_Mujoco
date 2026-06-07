@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>gofa_moveit_config</name>
+  <version>0.1.0</version>
+  <description>MoveIt2 config for ABB GoFa CRB15000</description>
+  <maintainer email="user@example.com">user</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>moveit_ros_move_group</depend>
+  <depend>moveit_kinematics</depend>
+  <depend>moveit_planners_ompl</depend>
+  <depend>moveit_ros_visualization</depend>
+  <depend>joint_state_broadcaster</depend>
+  <depend>joint_trajectory_controller</depend>
+  <depend>robot_state_publisher</depend>
+  <depend>moveit_configs_utils</depend>
+  <depend>rviz2</depend>
+  <depend>gofa_mujoco_bringup</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

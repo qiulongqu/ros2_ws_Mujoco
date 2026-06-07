@@ -1,0 +1,21 @@
+<mujoco model="pendulum_pub">
+  <option gravity="0 0 -9.81"/>
+
+  <default>
+    <joint damping="0.1"/>
+  </default>
+
+  <worldbody>
+    <body name="pivot" pos="0 0 0">
+      <joint name="pivot_joint" type="hinge" axis="0 0 1"/>
+      <body name="arm" pos="0 0 -0.5">
+        <geom type="sphere" size="0.08" mass="1" rgba="0 1 0.8 1"/>
+        <inertial pos="0 0 0" mass="1" diaginertia="0.001 0.001 0.001"/>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <motor joint="pivot_joint" ctrllimited="false" ctrlrange="-10 10"/>
+  </actuator>
+</mujoco>

@@ -1,0 +1,219 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="gofa_crb15000">
+
+  <!-- Whether to run MuJoCo simulation without visualization window -->
+  <xacro:arg name="headless" default="false"/>
+
+  <!-- ============================================ -->
+  <!-- ABB GoFa CRB15000 URDF                        -->
+  <!-- 运动学链与 MJCF (gofa_crb15000.xml) 完全一致  -->
+  <!-- ============================================ -->
+
+  <xacro:property name="mesh_dir" value="package://gofa_mujoco_bringup/meshes"/>
+
+  <!-- Materials -->
+  <material name="base_grey"><color rgba="0.5 0.5 0.5 1"/></material>
+  <material name="link_orange"><color rgba="1 0.6 0.2 1"/></material>
+  <material name="link_yellow"><color rgba="1 0.9 0.3 1"/></material>
+  <material name="link_white"><color rgba="0.9 0.9 0.9 1"/></material>
+  <material name="tool0_red"><color rgba="1 0 0 1"/></material>
+
+  <link name="world"/>
+
+  <!-- ============================================ -->
+  <!-- base_link — fixed to world                    -->
+  <!-- ============================================ -->
+  <link name="base_link">
+    <visual>
+      <geometry><mesh filename="${mesh_dir}/visual/base_link.dae"/></geometry>
+    </visual>
+    <collision>
+      <geometry><mesh filename="${mesh_dir}/collision/base_link.stl"/></geometry>
+    </collision>
+  </link>
+  <joint name="world_to_base" type="fixed">
+    <parent link="world"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ============================================ -->
+  <!-- link_1 — shoulder, Z-axis rotation            -->
+  <!-- ============================================ -->
+  <link name="link_1">
+    <visual>
+      <geometry><mesh filename="${mesh_dir}/visual/link_1.dae"/></geometry>
+    </visual>
+    <collision>
+      <geometry><mesh filename="${mesh_dir}/collision/link_1.stl"/></geometry>
+    </collision>
+  </link>
+  <joint name="joint_1" type="revolute">
+    <parent link="base_link"/>
+    <child link="link_1"/>
+    <origin xyz="0 0 0.218" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-4.7124" upper="4.7124" velocity="2.094" effort="400"/>
+  </joint>
+
+  <!-- ============================================ -->
+  <!-- link_2 — upper arm, Y-axis rotation           -->
+  <!-- ============================================ -->
+  <link name="link_2">
+    <visual>
+      <geometry><mesh filename="${mesh_dir}/visual/link_2.dae"/></geometry>
+    </visual>
+    <collision>
+      <geometry><mesh filename="${mesh_dir}/collision/link_2.stl"/></geometry>
+    </collision>
+  </link>
+  <joint name="joint_2" type="revolute">
+    <parent link="link_1"/>
+    <child link="link_2"/>
+    <origin xyz="0.150 0 0.182" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-2.4435" upper="1.5708" velocity="2.094" effort="400"/>
+  </joint>
+
+  <!-- ============================================ -->
+  <!-- link_3 — forearm, Y-axis rotation             -->
+  <!-- ============================================ -->
+  <link name="link_3">
+    <visual>
+      <geometry><mesh filename="${mesh_dir}/visual/link_3.dae"/></geometry>
+    </visual>
+    <collision>
+      <geometry><mesh filename="${mesh_dir}/collision/link_3.stl"/></geometry>
+    </collision>
+  </link>
+  <joint name="joint_3" type="revolute">
+    <parent link="link_2"/>
+    <child link="link_3"/>
+    <origin xyz="0 0 0.707" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.9270" upper="1.4835" velocity="2.182" effort="250"/>
+  </joint>
+
+  <!-- ============================================ -->
+  <!-- link_4 — wrist roll, X-axis rotation          -->
+  <!-- ============================================ -->
+  <link name="link_4">
+    <visual>
+      <geometry><mesh filename="${mesh_dir}/visual/link_4.dae"/></geometry>
+    </visual>
+    <collision>
+      <geometry><mesh filename="${mesh_dir}/collision/link_4.stl"/></geometry>
+    </collision>
+  </link>
+  <joint name="joint_4" type="revolute">
+    <parent link="link_3"/>
+    <child link="link_4"/>
+    <origin xyz="0 0 0.110" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-3.4907" upper="3.4907" velocity="3.491" effort="100"/>
+  </joint>
+
+  <!-- ============================================ -->
+  <!-- link_5 — wrist pitch, Y-axis rotation         -->
+  <!-- ============================================ -->
+  <link name="link_5">
+    <visual>
+      <geometry><mesh filename="${mesh_dir}/visual/link_5.dae"/></geometry>
+    </visual>
+    <collision>
+      <geometry><mesh filename="${mesh_dir}/collision/link_5.stl"/></geometry>
+    </collision>
+  </link>
+  <joint name="joint_5" type="revolute">
+    <parent link="link_4"/>
+    <child link="link_5"/>
+    <origin xyz="0.637 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-2.2689" upper="2.2689" velocity="3.491" effort="80"/>
+  </joint>
+
+  <!-- ============================================ -->
+  <!-- link_6 — tool flange, X-axis rotation         -->
+  <!-- ============================================ -->
+  <link name="link_6">
+    <visual>
+      <geometry><mesh filename="${mesh_dir}/visual/link_6.dae"/></geometry>
+    </visual>
+    <collision>
+      <geometry><mesh filename="${mesh_dir}/collision/link_6.stl"/></geometry>
+    </collision>
+  </link>
+  <joint name="joint_6" type="revolute">
+    <parent link="link_5"/>
+    <child link="link_6"/>
+    <origin xyz="0.101 0 0.080" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-4.7124" upper="4.7124" velocity="3.491" effort="50"/>
+  </joint>
+
+  <!-- ============================================ -->
+  <!-- tool0 — end-effector reference frame          -->
+  <!-- ============================================ -->
+  <link name="tool0">
+    <visual>
+      <geometry><sphere radius="0.02"/></geometry>
+      <material name="tool0_red"/>
+    </visual>
+    <collision>
+      <geometry><sphere radius="0.02"/></geometry>
+    </collision>
+  </link>
+  <joint name="tool0_joint" type="fixed">
+    <parent link="link_6"/>
+    <child link="tool0"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ============================================ -->
+  <!-- ros2_control — MujocoSystemInterface bridge   -->
+  <!-- ============================================ -->
+  <ros2_control name="MujocoSystem" type="system">
+    <hardware>
+      <plugin>mujoco_ros2_control/MujocoSystemInterface</plugin>
+
+      <param name="mujoco_model">
+        /home/yunhao2204/ros2_ws_abb/mujocoONLY/tutorials/p3_arm_model/gofa_crb15000.xml
+      </param>
+
+      <param name="sim_speed_factor">1.0</param>
+      <param name="headless">$(arg headless)</param>
+    </hardware>
+
+    <joint name="joint_1">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+      <state_interface name="velocity"/>
+    </joint>
+    <joint name="joint_2">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+      <state_interface name="velocity"/>
+    </joint>
+    <joint name="joint_3">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+      <state_interface name="velocity"/>
+    </joint>
+    <joint name="joint_4">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+      <state_interface name="velocity"/>
+    </joint>
+    <joint name="joint_5">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+      <state_interface name="velocity"/>
+    </joint>
+    <joint name="joint_6">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+      <state_interface name="velocity"/>
+    </joint>
+  </ros2_control>
+
+</robot>

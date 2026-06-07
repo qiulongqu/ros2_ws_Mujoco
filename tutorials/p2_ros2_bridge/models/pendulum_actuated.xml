@@ -1,0 +1,27 @@
+<mujoco model="pendulum_actuated">
+  <!-- 重力方向 -->
+  <option gravity="0 0 -9.81"/>
+
+  <!-- 关节阻尼（粘性摩擦） -->
+  <default>
+    <joint damping="0.1"/>
+  </default>
+
+  <worldbody>
+    <!-- 固定支点 -->
+    <body name="pivot" pos="0 0 0">
+      <joint name="pivot_joint" type="hinge" axis="0 0 1"/>
+
+      <!-- 摆臂末端 -->
+      <body name="arm" pos="0 0 -0.5">
+        <geom type="sphere" size="0.08" mass="1" rgba="0 1 0.8 1" friction="1 0.005 0.005"/>
+        <inertial pos="0 0 0" mass="1" diaginertia="0.001 0.001 0.001"/>
+      </body>
+    </body>
+  </worldbody>
+
+  <!-- 执行器：控制关节力矩 -->
+  <actuator>
+    <motor joint="pivot_joint" ctrllimited="false" ctrlrange="-10 10"/>
+  </actuator>
+</mujoco>
