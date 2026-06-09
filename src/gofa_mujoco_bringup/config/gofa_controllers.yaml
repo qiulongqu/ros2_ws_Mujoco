@@ -3,6 +3,11 @@
 #   - controller_manager.ros__parameters has ONLY update_rate
 #   - Each controller has its own ros__parameters with type + config
 #   - Spawners use --param-file to load this file
+#
+# P5 (MoveIt2) change: 添加 abb_controller (JointTrajectoryController)
+#   - MoveIt2 move_group 通过 FollowJointTrajectory action 发送轨迹
+#   - JTC 内部做时间参数化 + 插值,直接驱动 ros2_control position interface
+#   - position_controller 保留作为 P4 baseline (手动 topic pub Float64MultiArray)
 
 controller_manager:
   ros__parameters:
@@ -13,8 +18,8 @@ joint_state_broadcaster:
     update_rate: 50
     type: joint_state_broadcaster/JointStateBroadcaster
 
-# ForwardCommandController: simple position control (official demo pattern)
-# Publish commands: ros2 topic pub /position_controller/commands std_msgs/msg/Float64MultiArray "data: [0.5, -0.3, 0.2, 0, 0, 0]"
+# P4 baseline: 简单位置控制 (官方 demo 模式)
+# Publish: ros2 topic pub /position_controller/commands std_msgs/msg/Float64MultiArray "data: [...]"
 position_controller:
   ros__parameters:
     type: forward_command_controller/ForwardCommandController
@@ -26,3 +31,27 @@ position_controller:
       - joint_4
       - joint_5
       - joint_6
+
+# P5 (MoveIt2): 轨迹控制
+# MoveIt2 move_group → /abb_controller/follow_joint_trajectory (action) → JTC → ros2_control
+# - command_interfaces=[position] 接收目标位置
+# - state_interfaces=[position, velocity] 反馈关节状态 (velocity 用于 JTC 内部前馈)
+# - allow_partial_joints_goal=true 允许只指定部分关节 (MoveIt2 偶尔会这样)
+# - open_loop_control=true 让 JTC 不做反馈插值, 直接下发目标点 (适合 500Hz 仿真)
+abb_controller:
+  ros__parameters:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints:
+      - joint_1
+      - joint_2
+      - joint_3
+      - joint_4
+      - joint_5
+      - joint_6
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    allow_partial_joints_goal: true
+    open_loop_control: true

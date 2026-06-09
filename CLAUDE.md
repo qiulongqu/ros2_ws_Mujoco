@@ -366,6 +366,55 @@ P4 (当前):                                  P5 (目标):
 - **原因**: MoveIt2 用 planning frame 算碰撞, 但 RViz 视觉化要 `RobotModel` display 显式订阅 `robot_description`.
 - **教训**: `RobotModel` 和 `MotionPlanning` 是两个独立 display, 都需要. `MotionPlanning` 调 move_group 服务, `RobotModel` 单纯可视化.
 
+#### 5-06 ros2_control controller 资源互斥 (踩坑 2026-06-09)
+- **现象**: `abb_controller` (JTC) 和 `position_controller` (ForwardCommandController) 同时 spawn 报 "Resource conflict for controller 'abb_controller'. Command interface 'joint_1/position' is already claimed."
+- **根因**: ros2_control 硬约束 — 同一 hardware interface (joint_X/position) 只能被一个 controller 持有.
+- **解决**: 用不同 launch 文件分流:
+  - P4 baseline `gofa_mujoco_bringup/gofa_mujoco.launch.py` — 只 spawn `position_controller` (topic pub)
+  - P5 MoveIt2 `gofa_moveit_config/demo.launch.py` — 只 spawn `abb_controller` (JTC + action)
+- **Why**: 这是架构选择, 不是 bug。同一个 controller_manager 进程里不能并存两个 claim 同一接口的 controller。
+- **How to apply**: 后续如果需要 P4+P5 共存 (比如先 MoveIt2 规划, 再 ForwardCommand 接管), 必须先 `unload` 一个再 `load` 另一个, 不能同时 active。
+
+#### 5-07 JointTrajectoryController 类名位置 (踩坑 2026-06-09)
+- **错误**: 第一版 yaml 写 `type: position_controllers/JointTrajectoryController`
+- **报错**: `Loader for controller 'abb_controller' (type 'position_controllers/JointTrajectoryController') not found.`
+- **正解**: `type: joint_trajectory_controller/JointTrajectoryController` (包名=joint_trajectory_controller, 不是 position_controllers)
+- **验证方法**: `ros2 control list_controller_types | grep Trajectory` 是唯一可靠方式。不要靠记忆, 记忆容易和 `position_controllers/GripperActionController` 混。
+
+#### 5-08 move_group 启动顺序 (新增 2026-06-09)
+1. `ros2 launch gofa_moveit_config demo.launch.py` (启动 controllers + JTC)
+2. 验证 `ros2 control list_controllers` 看到 `abb_controller active` (JTC)
+3. 验证 `/abb_controller/follow_joint_trajectory` action server 在线: `ros2 action list | grep trajectory`
+4. `ros2 launch gofa_moveit_config move_group.launch.py` (启动规划节点)
+5. `rviz2 -d <path>/moveit.rviz` (可视化 + Plan)
+- **Why**: move_group 不负责 spawn controllers, 它假设 controllers 已经在 active 状态。
+
+#### 5-09 move_group 配置文件全量加载 (新增 2026-06-09)
+- **现象**: 漏加载 `ompl_planning.yaml` → 规划超时或路径差
+- **现象**: 漏加载 `joint_limits.yaml` → 关节限位没传给 move_group, 可能规划到物理不可达区域
+- **正确模板**:
+  ```python
+  parameters=[
+      robot_description,
+      robot_description_semantic,
+      kinematics_yaml,
+      ompl_yaml,                  # 别漏!
+      joint_limits_yaml,          # 别漏!
+      moveit_controllers_yaml,
+      {"use_sim_time": True},
+  ]
+  ```
+- **教训**: moveit_config 包下 5 个 yaml 缺一不可, launch 文件不加载某个 = 走默认值, 大概率 fail。
+
+#### 5-10 P5 baseline 验证清单 (闭环 2026-06-09)
+- [x] colcon build 通过 (`gofa_mujoco_bringup`, `gofa_moveit_config`)
+- [x] `demo.launch.py mujoco_gui:=false rviz_gui:=false` 启动 25s+ 无 ERROR
+- [x] `ros2 control list_controllers`: `abb_controller` + `joint_state_broadcaster` 都 active
+- [x] `/joint_states` 50Hz 发布 6 个 joint
+- [x] `/abb_controller/follow_joint_trajectory` action server 在线
+- [x] MuJoCo 6 joint position control enabled
+- [ ] **未验证**: 完整 `move_group.launch.py` + RViz 中 Plan + Execute (A 阶段补概念后再做)
+
 ---
 
 ## 实战原则 (跨阶段)

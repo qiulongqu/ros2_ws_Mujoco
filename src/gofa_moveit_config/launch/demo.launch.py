@@ -87,7 +87,12 @@ def launch_setup(context, *args, **kwargs):
     )
 
     # 3. Controller spawners
-    controllers_to_spawn = ["joint_state_broadcaster", "position_controller"]
+    # ros2_control 硬约束: 同一 hardware interface (joint_X/position) 只能被一个 controller 持有
+    # - joint_state_broadcaster: 发布 /joint_states (只读 state, 不冲突)
+    # - abb_controller:          P5 MoveIt2 集成 (JTC 接 FollowJointTrajectory action)
+    # 注意: P4 baseline (position_controller + topic pub) 走 gofa_mujoco_bringup/gofa_mujoco.launch.py
+    #       demo.launch.py 专注 MoveIt2 路线,避免接口冲突
+    controllers_to_spawn = ["joint_state_broadcaster", "abb_controller"]
     for controller in controllers_to_spawn:
         nodes.append(
             Node(

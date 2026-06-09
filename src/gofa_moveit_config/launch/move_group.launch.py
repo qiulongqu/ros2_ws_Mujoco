@@ -2,22 +2,29 @@
 """
 MoveIt2 MoveGroup Launch for GoFa CRB15000
 
-Usage (requires MuJoCo bridge already running):
-    ros2 launch gofa_moveit_config move_group.launch.py
+启动 move_group 节点,接管规划请求。需要 MuJoCo + ros2_control + RViz
+(ros2_control_node + controllers) 已经在另一个进程里运行。
 
-Then in another terminal:
+P5 修复: 加载 ompl_planning.yaml + joint_limits.yaml, xacro 解析风格
+与 demo.launch.py 统一 (Command + FindExecutable + PathJoinSubstitution)
+
+用法:
+    ros2 launch gofa_mujoco_bringup gofa_mujoco.launch.py &
+    ros2 launch gofa_moveit_config move_group.launch.py
     rviz2 -d <path>/moveit.rviz
 """
 
 import os
-import subprocess
-import yaml
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch.substitutions import LaunchConfiguration
+from launch.actions import OpaqueFunction
+from launch.substitutions import (
+    Command,
+    FindExecutable,
+    PathJoinSubstitution,
+)
 from launch_ros.actions import Node
-from ament_index_python.packages import get_package_share_directory
+from launch_ros.substitutions import FindPackageShare
 
 
 def load_yaml(path):
@@ -25,25 +32,41 @@ def load_yaml(path):
         return yaml.safe_load(f)
 
 
-def xacro_to_urdf(path):
-    result = subprocess.run(["xacro", path], capture_output=True, text=True)
-    if result.returncode != 0:
-        raise RuntimeError(f"xacro failed:\n{result.stderr}")
-    return result.stdout
-
-
 def launch_setup(context, *args, **kwargs):
-    bringup_share = get_package_share_directory("gofa_mujoco_bringup")
-    moveit_share = get_package_share_directory("gofa_moveit_config")
+    bringup_share = FindPackageShare("gofa_mujoco_bringup")
+    moveit_share = FindPackageShare("gofa_moveit_config")
 
-    urdf_path = os.path.join(bringup_share, "urdf", "gofa.ros2_control.urdf.xacro")
-    srdf_path = os.path.join(moveit_share, "config", "gofa.srdf")
-    kinematics_path = os.path.join(moveit_share, "config", "kinematics.yaml")
-    controllers_path = os.path.join(moveit_share, "config", "moveit_controllers.yaml")
+    # 与 demo.launch.py 统一: 用 launch_ros.substitutions 而不是 subprocess
+    # robot_description 通过 xacro 解析
+    robot_description_content = Command(
+        [
+            PathJoinSubstitution([FindExecutable(name="xacro")]),
+            " ",
+            PathJoinSubstitution([bringup_share, "urdf", "gofa.ros2_control.urdf.xacro"]),
+            " headless:=true",
+        ]
+    )
+    robot_description = {"robot_description": robot_description_content.perform(context)}
 
-    robot_description = {"robot_description": xacro_to_urdf(urdf_path)}
-    robot_description_semantic = {"robot_description_semantic": open(srdf_path).read()}
-    robot_description_kinematics = load_yaml(kinematics_path)
+    # semantic + kinematics + planning + limits + controllers
+    robot_description_semantic = {
+        "robot_description_semantic": open(
+            os.path.join(moveit_share.perform(context), "config", "gofa.srdf")
+        ).read()
+    }
+
+    kinematics_yaml = load_yaml(
+        os.path.join(moveit_share.perform(context), "config", "kinematics.yaml")
+    )
+    ompl_yaml = load_yaml(
+        os.path.join(moveit_share.perform(context), "config", "ompl_planning.yaml")
+    )
+    joint_limits_yaml = load_yaml(
+        os.path.join(moveit_share.perform(context), "config", "joint_limits.yaml")
+    )
+    moveit_controllers_yaml = load_yaml(
+        os.path.join(moveit_share.perform(context), "config", "moveit_controllers.yaml")
+    )
 
     move_group_node = Node(
         package="moveit_ros_move_group",
@@ -52,8 +75,10 @@ def launch_setup(context, *args, **kwargs):
         parameters=[
             robot_description,
             robot_description_semantic,
-            robot_description_kinematics,
-            load_yaml(controllers_path),
+            kinematics_yaml,
+            ompl_yaml,
+            joint_limits_yaml,
+            moveit_controllers_yaml,
             {"use_sim_time": True},
             {"publish_robot_description_semantic": True},
             {"publish_robot_description": True},

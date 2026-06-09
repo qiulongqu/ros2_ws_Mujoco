@@ -157,6 +157,7 @@ User → RViz MotionPlanning / MoveGroup API
 
 ## 学习检查清单
 
+- [x] **Phase 3 baseline (2026-06-09)**: JTC + move_group.launch.py 配置闭环, controllers 全 active, action server 在线. 详见 `docs/troubleshooting/0001_JTC_blocking_point.md` 和 CLAUDE.md 5-06~5-10.
 - [ ] Phase 1: 阅读完所有概念文档并做笔记
 - [ ] Phase 2: 跑通所有官方 C++ 和 Python 教程
 - [ ] Phase 3: GoFa + MoveIt2 集成成功，RViz 中可 Plan + Execute
@@ -169,3 +170,19 @@ User → RViz MotionPlanning / MoveGroup API
 2. **版本匹配**：确保使用 ROS2 Humble + MoveIt2 Humble 分支
 3. **与当前项目隔离**：P5 的实验代码放在 `p5_moveit2_learning/` 下，不影响 P1~P4 的运行
 4. **记录问题**：所有踩过的坑记录在 `docs/troubleshooting/` 和 `CLAUDE.md` 中
+
+---
+
+## 进度快照 (2026-06-09)
+
+**已完成 (B 阶段 baseline 闭环)**:
+- ✅ `abb_controller` (JTC) 配置 + spawn
+- ✅ `move_group.launch.py` 加载 ompl_planning.yaml + joint_limits.yaml + 统一 xacro 风格
+- ✅ `ros2 control list_controllers` 验证全 active
+- ✅ `/joint_states` 50Hz 发布 6 joint
+- ✅ `/abb_controller/follow_joint_trajectory` action server 在线
+
+**下一步 (A 阶段概念补全)**:
+- 读 MoveIt2 官方 5 篇概念文档, 写 `docs/concept_notes/*.md`
+- 启动 `move_group.launch.py` + RViz, 验证 Plan + Execute 一次, 截图存 `resources/p5/`
+- Phase 2 官方 tutorial (需 `apt install ros-humble-moveit2-tutorials`)
