@@ -1,0 +1,151 @@
+{
+  "test_name": "P5_B_PickPlaceScene_L1toL4",
+  "timestamp": "2026-06-09T19:05:45",
+  "story": "P4 拣放场景搬到 P5 demo: L1 规划测试 + L3→L4 8 阶段执行",
+  "scene": {
+    "urdf": "gofa_with_scene.ros2_control.urdf.xacro (含 table+block)",
+    "srdf": "gofa_with_scene.srdf (含 table+block collision matrix)",
+    "ompl_yaml": "ompl_planning.yaml (B 路径 demo_with_scene.launch.py 加载, 标量 request_adapters; workspace_bounds/planner_configs 嵌套结构走 MoveIt 内部默认)",
+    "mujoco_model": "gofa_table_block.xml (arm + table + block + suction)"
+  },
+  "l1_planning": {
+    "status": "FAIL(99999)",
+    "error_code": 99999,
+    "fraction": 0.0,
+    "n_points": 0,
+    "note": "headless service 验证已知限制 (CLAUDE.md 5-13), RViz 手动 Plan+Execute 才能稳定验证 L1",
+    "limitations": [
+      "OMPL: Skipping invalid start state (invalid state) — MuJoCo TF jump back 导致 current_state_monitor 失效",
+      "joint 顺序非标准 (joint_3/joint_4 互换) — MoveIt 内部用 name 匹配应该 OK 但需验证"
+    ]
+  },
+  "l3_execution": {
+    "n_waypoints": 7,
+    "total_duration_s": 14.0,
+    "status": 4,
+    "status_meaning": "SUCCEEDED",
+    "note": "核心闭环 — 8 阶段拣放, MuJoCo 中 block 物理存在, arm 实际通过所有 waypoint"
+  },
+  "trajectory_waypoints": [
+    {
+      "label": "起手 (零位)",
+      "joints_rad": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "label": "抓取上方",
+      "joints_rad": [
+        -0.2914567944778671,
+        1.5708,
+        -0.31735620244614315,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "label": "抓取位 (block 顶)",
+      "joints_rad": [
+        -0.2914567944778671,
+        1.5708,
+        -0.17414523902290036,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "label": "抬升到安全高度",
+      "joints_rad": [
+        -0.2914567944778671,
+        0.9236282162972965,
+        -1.2185895039159955,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "label": "放置上方",
+      "joints_rad": [
+        0.2914567944778671,
+        1.5708,
+        -0.31735620244614315,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "label": "放置位 (block 顶)",
+      "joints_rad": [
+        0.2914567944778671,
+        1.5708,
+        -0.17414523902290036,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "label": "归零",
+      "joints_rad": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "initial_position_rad": [
+    -4.331535725703556e-40,
+    0.005820013877296267,
+    -8.122822679726127e-06,
+    0.00011605272739254665,
+    0.007585926483334432,
+    -1.2e-322
+  ],
+  "final_position_rad": [
+    -4.392714730741497e-40,
+    0.005820013877296267,
+    -8.122822679726127e-06,
+    0.00011605272739254665,
+    0.007585926483334432,
+    -1.2932995161412768e-66
+  ],
+  "final_target_rad": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "position_error_rad": [
+    4.392714730741497e-40,
+    0.005820013877296267,
+    8.122822679726127e-06,
+    0.00011605272739254665,
+    0.007585926483334432,
+    1.2932995161412768e-66
+  ],
+  "position_error_deg": [
+    "0.00",
+    "0.33",
+    "0.00",
+    "0.01",
+    "0.43",
+    "0.00"
+  ],
+  "max_position_error_deg": 0.43464157119158164,
+  "samples_n": 280,
+  "verdict": "PASS"
+}

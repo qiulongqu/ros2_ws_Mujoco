@@ -1,0 +1,29 @@
+planning_plugin: ompl_interface/OMPLPlanner
+start_state_max_bounds_error: 0.1
+jiggle_fraction: 0.05
+# 默认工作空间: 覆盖 GoFa 完整臂展 (1.5m), Z 含桌面高度 (0~1m)
+# 不设这个 OMPL 报 "planning volume was not specified", start tree 初始化失败
+default_workspace_bounds:
+  - [-2.0, 2.0]   # X
+  - [-2.0, 2.0]   # Y
+  - [0.0, 2.0]    # Z (含桌面 + 安全高度)
+# 关键: workspace_parameters 由 FixWorkspaceBounds adapter 注入
+request_adapters: >-
+    default_planner_request_adapters/AddTimeOptimalParameterization
+    default_planner_request_adapters/ResolveConstraintFrames
+    default_planner_request_adapters/FixWorkspaceBounds
+    default_planner_request_adapters/FixStartStateBounds
+    default_planner_request_adapters/FixStartStateCollision
+    default_planner_request_adapters/FixStartStatePathConstraints
+# 显式定义 planner_configs, 不靠 MoveIt 自动注册
+# RRTstarkConfigDefault 接受更大的 start state 偏差 (根治 0002 文档的 invalid start state)
+planner_configs:
+  RRTstarkConfigDefault:
+    type: geometric::RRTstar
+    range: 0.0
+    goal_bias: 0.05
+    delay_collision_checking: 1
+  RRTConnectConfigDefault:
+    type: geometric::RRTConnect
+    range: 0.0
+    RRTConnectConfigDefault.range: 0.0

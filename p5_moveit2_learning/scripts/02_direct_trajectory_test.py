@@ -34,16 +34,28 @@ from control_msgs.action import FollowJointTrajectory
 from trajectory_msgs.msg import JointTrajectoryPoint
 
 
-# 5 个 waypoint (rad): 从零位 → 中间位 → 目标位 → 回程 → 零位
+# 6 个 waypoint (rad): "有故事的拣放演示" — 起手→抓取上方→抓取位→抬升→放置位→归零
+# 沿用 P4 拣放已验证的角度 (joint_limits 内 + IK 收敛)
+# 故事: 机械臂从零位, 去"抓"一个目标 (joint_2 = -0.5 表示前伸+下俯),
+#        "抬起"到安全高度 (joint_3 = 0.5 表示抬升), "放下"到另一位置, 归零
 WAYPOINTS = [
-    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],         # 零位
-    [0.3, -0.3, 0.5, 0.0, 0.3, 0.0],         # 抬升
-    [0.0, -0.5, 0.8, 0.0, 0.5, 0.0],         # 目标位
-    [-0.3, -0.3, 0.5, 0.0, 0.3, 0.0],        # 撤回
-    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],          # 归零
+    [0.0,  0.0,  0.0,  0.0, 0.0, 0.0],   # 0. 起手位 (零位)
+    [0.3, -0.3,  0.5,  0.0, 0.3, 0.0],   # 1. 抓取位上方 (肩转 + 抬升)
+    [0.0, -0.5,  0.8,  0.0, 0.5, 0.0],   # 2. 抓取位 (前伸下俯)
+    [0.0, -0.3,  0.5,  0.0, 0.3, 0.0],   # 3. 抬升到安全高度
+    [0.3, -0.5,  0.8,  0.0, 0.5, 0.0],   # 4. 放置位 (侧方)
+    [0.0,  0.0,  0.0,  0.0, 0.0, 0.0],   # 5. 归零
+]
+WAYPOINT_LABELS = [
+    "起手位 (零位)",
+    "抓取位上方 (肩转+抬升)",
+    "抓取位 (前伸下俯)",
+    "抬升到安全高度",
+    "放置位 (侧方)",
+    "归零",
 ]
 JOINT_NAMES = ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"]
-WAYPOINT_DURATION_S = 1.5  # 每个 waypoint 1.5 秒
+WAYPOINT_DURATION_S = 1.5  # 每个 waypoint 1.5 秒, 6 个 = 9 秒总轨迹
 
 
 class DirectTrajectoryValidator(Node):
@@ -93,7 +105,9 @@ class DirectTrajectoryValidator(Node):
         goal = self.build_trajectory_goal()
         self.get_logger().info(f"发送 JointTrajectory: {len(WAYPOINTS)} 个 waypoint, "
                               f"总时长 = {len(WAYPOINTS) * WAYPOINT_DURATION_S:.1f}s")
-        self.get_logger().info(f"目标轨迹: {[[f'{p:.2f}' for p in wp] for wp in WAYPOINTS]}")
+        self.get_logger().info("轨迹剧情:")
+        for label, wp in zip(WAYPOINT_LABELS, WAYPOINTS):
+            self.get_logger().info(f"  - {label}: {[f'{p:.2f}' for p in wp]}")
 
         future = self.action_client.send_goal_async(goal)
         rclpy.spin_until_future_complete(self, future, timeout_sec=5.0)
@@ -145,7 +159,7 @@ def main():
     # 启动后台采样线程 (用 rclpy.spin_once 循环)
     # 这里简单: 串行, 先发 goal, 再在 goal 执行期间 spin
     node.get_logger().info("=" * 60)
-    node.get_logger().info("L3 → L4 端到端验证 (Direct JointTrajectory)")
+    node.get_logger().info("L3 → L4 端到端验证 (有故事拣放演示)")
     node.get_logger().info("=" * 60)
 
     # 先发 goal
@@ -189,10 +203,12 @@ def main():
     position_error = [abs(f - t) for f, t in zip(final_pos, final_target)]
 
     evidence = {
-        "test_name": "P5_A2_DirectTrajectory_L3toL4",
+        "test_name": "P5_A2_PickPlaceDemo_L3toL4",
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "story": "有故事的拣放演示 (起手→抓取上方→抓取→抬升→放置→归零)",
         "trajectory": {
             "n_waypoints": n_waypoints,
+            "waypoint_labels": WAYPOINT_LABELS,
             "waypoints_rad": WAYPOINTS,
             "waypoints_deg": [[f"{p * 180 / 3.14159:.1f}" for p in wp] for wp in WAYPOINTS],
             "duration_per_waypoint_s": WAYPOINT_DURATION_S,

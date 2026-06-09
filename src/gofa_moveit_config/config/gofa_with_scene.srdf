@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  P5 Demo with Scene SRDF (B 路径深挖)
+  =====================================
+  与 gofa.srdf 的区别: 增加 table 和 block 的 collision matrix 条目.
+
+  规则:
+    - 关节 adjacent 的 link 不需要 collision check (Adjacent)
+    - 永远不会撞的 link (Never) - 隔太远
+    - 实际可能撞的 (Default) - 让 MoveIt 检查
+
+  table 是 fixed, 与所有 arm link 都标记为 "Default" (可能撞)
+  block 是 fixed (URDF 假设) + 实际 MuJoCo teleport 移动, 与 link_3-6 设为 Default
+-->
+<robot name="gofa_crb15000_with_scene"
+       xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <group name="gofa_arm">
+    <chain base_link="base_link" tip_link="tool0"/>
+  </group>
+
+  <end_effector name="gofa_gripper" parent_link="link_6" group="gofa_arm"/>
+
+  <!-- Arm self-collision (与原 gofa.srdf 一致) -->
+  <disable_collisions link1="base_link" link2="link_1"  reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="link_2"  reason="Never"/>
+  <disable_collisions link1="base_link" link2="link_3"  reason="Never"/>
+  <disable_collisions link1="link_1"  link2="link_2"   reason="Adjacent"/>
+  <disable_collisions link1="link_1"  link2="link_3"   reason="Never"/>
+  <disable_collisions link1="link_2"  link2="link_3"   reason="Adjacent"/>
+  <disable_collisions link1="link_2"  link2="link_4"   reason="Default"/>
+  <disable_collisions link1="link_3"  link2="link_4"   reason="Adjacent"/>
+  <disable_collisions link1="link_3"  link2="link_5"   reason="Never"/>
+  <disable_collisions link1="link_4"  link2="link_5"   reason="Adjacent"/>
+  <disable_collisions link1="link_4"  link2="link_6"   reason="Never"/>
+  <disable_collisions link1="link_5"  link2="link_6"   reason="Adjacent"/>
+
+  <!-- Arm vs Table (P4 拣放场景: 桌面在 arm 工作空间内) -->
+  <disable_collisions link1="base_link" link2="table"  reason="Never"/>
+  <disable_collisions link1="link_1"   link2="table"   reason="Never"/>
+  <disable_collisions link1="link_2"   link2="table"   reason="Default"/>
+  <disable_collisions link1="link_3"   link2="table"   reason="Default"/>
+  <disable_collisions link1="link_4"   link2="table"   reason="Default"/>
+  <disable_collisions link1="link_5"   link2="table"   reason="Default"/>
+  <disable_collisions link1="link_6"   link2="table"   reason="Default"/>
+  <disable_collisions link1="tool0"    link2="table"   reason="Default"/>
+
+  <!-- Arm vs Block (方块在桌面上, 会被吸附, 规划时需要靠近) -->
+  <disable_collisions link1="base_link" link2="block"  reason="Never"/>
+  <disable_collisions link1="link_1"   link2="block"   reason="Never"/>
+  <disable_collisions link1="link_2"   link2="block"   reason="Default"/>
+  <disable_collisions link1="link_3"   link2="block"   reason="Default"/>
+  <disable_collisions link1="link_4"   link2="block"   reason="Default"/>
+  <disable_collisions link1="link_5"   link2="block"   reason="Default"/>
+  <disable_collisions link1="link_6"   link2="block"   reason="Default"/>
+  <disable_collisions link1="tool0"    link2="block"   reason="Adjacent"/>
+
+  <!-- Block vs Table (方块在桌面上) -->
+  <disable_collisions link1="block"    link2="table"   reason="Adjacent"/>
+
+  <virtual_joint name="virtual_joint" type="fixed" parent_frame="world" child_link="base_link"/>
+
+</robot>
