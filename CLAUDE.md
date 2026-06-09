@@ -473,6 +473,21 @@ action_client.send_goal_async(goal)
 - **Why**: 仿真器 + MoveIt + ROS2 TF 三层时间源不严格同步, 启动瞬间总会有抖动.
 - **How to apply**: B 路径 demo 验收以 L3→L4 PASS 为准, L1 标 best-effort, evidence 里诚实记录 limitation, 不掩盖问题.
 
+#### 5-17 B 路径深挖: L1 真正根因 = SRDF 漏 link_6 ↔ tool0 disable (2026-06-09)
+- **现象**: 前 4 次 L1 失败 (headless script, RViz GUI 都炸) — OMPL "Skipping invalid start state (invalid state)". 之前归因于 TF jump back / yaml 嵌套 / workspace bounds, 全错.
+- **真根因 (用 `/check_state_validity` service 直接验)**: 零位时 `link_6 <-> tool0 depth=-0.0003` — URDF 中 `tool0` 是 2cm 球, 中心在 `link_6` 末端 (joint_6 旋转中心), 与 `link_6.stl` 几何本身有 0.3mm 物理重叠. MoveIt state validity 永远 False → OMPL 永远拒绝 start state.
+- **修法 (1 行)**: SRDF 加 `<disable_collisions link1="link_6" link2="tool0" reason="Adjacent"/>` — 工业上工具紧贴 link_6 末端, 跳过 collision check. 修完 `/check_state_validity valid=True`, L1 规划 status=OK, fraction=1.0, n_points=7. **L1→L4 全链路 PASS**.
+- **教训**:
+  1. **OMPL "Skipping invalid start state" 不一定是大问题** — 可能是最简单的 1 行 SRDF 漏 disable. 之前我没调 `/check_state_validity` 直接验, 而是反复改 yaml 嵌套 / 加 workspace bounds / 怀疑 TF sync, **是经验主义**, 不是事实驱动.
+  2. **诊断方法**: 调 `/check_state_validity` 服务 (rclpy + GetStateValidity) 直接看 start state 的 contacts. **5 行代码就能定位**, 比改 yaml 快 100 倍.
+  3. **`world.collision_objects = 0` 是预期** — URDF 里的 table/block 是 robot 内部 fixed links, 不是 world objects. 看到 0 不要慌.
+  4. **同一个 SRDF bug 也影响 P5 baseline (gofa.srdf)** — 原始 gofa.srdf 同样没 link_6 ↔ tool0 disable, 意味着 P5 baseline 的 demo.launch.py L1 同样会炸. **CLAUDE.md 5-10 "P5 baseline 闭环 PASS" 实际只验了 L3→L4, L1 自始至终没通过**. 建议在 gofa.srdf 也加同样 1 行.
+- **Why 之前没想到**: 嵌套 yaml 报错让我注意力被吸引到 launch_ros 配置; 看到 "TF jump back" warning 让我以为是环境同步. **"是什么导致 invalid" 必须看 isStateValid 返回的 contacts**, 不是看 OMPL 的 error message. OMPL 不告诉你为什么 invalid — 它只说"invalid".
+- **How to apply**:
+  1. 任何 L1 "Skipping invalid start state" 出现, **第一件事** 调 `/check_state_validity` 看 contacts. 不要改 yaml 嵌套, 不要加 workspace bounds, 不要怀疑 TF sync.
+  2. SRDF collision matrix 是 MoveIt 行为的"宪法", **任何 URDF 加新 link 都要同步检查 SRDF 是否有对应 disable**.
+  3. 用 `/get_planning_scene` service 看 `robot_model_name` 确认 URDF 加载对; `world.collision_objects` 应该是 0 (URDF 里的物体进 robot model, 不进 world).
+
 ---
 
 ## 实战原则 (跨阶段)

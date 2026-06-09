@@ -27,6 +27,9 @@
   <disable_collisions link1="link_4"  link2="link_5"   reason="Adjacent"/>
   <disable_collisions link1="link_4"  link2="link_6"   reason="Never"/>
   <disable_collisions link1="link_5"  link2="link_6"   reason="Adjacent"/>
+  <!-- 5-17 修复: URDF 中 tool0 是 2cm 球, 中心在 link_6 末端, 与 link_6.stl 几何有 0.3mm 物理重叠.
+       不加这条: 零位 state validity 永远 False, OMPL "Skipping invalid start state" 永远失败 -->
+  <disable_collisions link1="link_6"  link2="tool0"    reason="Adjacent"/>
 
   <!-- Virtual joint: world ↔ base_link for floating base planning -->
   <virtual_joint name="virtual_joint" type="fixed" parent_frame="world" child_link="base_link"/>

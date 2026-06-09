@@ -34,6 +34,10 @@
   <disable_collisions link1="link_4"  link2="link_5"   reason="Adjacent"/>
   <disable_collisions link1="link_4"  link2="link_6"   reason="Never"/>
   <disable_collisions link1="link_5"  link2="link_6"   reason="Adjacent"/>
+  <!-- B 路径深挖 (2026-06-09): URDF 中 tool0 是 2cm 球, 中心在 link_6 末端 (joint_6 旋转中心),
+       与 link_6.stl 几何有 0.3mm 物理重叠. 工业上工具紧贴 link_6, 标 Adjacent 跳过 collision check.
+       不加这条: 零位 state validity 永远 False (depth=-0.0003), OMPL "Skipping invalid start state" -->
+  <disable_collisions link1="link_6"  link2="tool0"    reason="Adjacent"/>
 
   <!-- Arm vs Table (P4 拣放场景: 桌面在 arm 工作空间内) -->
   <disable_collisions link1="base_link" link2="table"  reason="Never"/>

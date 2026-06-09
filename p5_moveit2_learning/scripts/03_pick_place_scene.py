@@ -353,7 +353,7 @@ def main():
         "scene": {
             "urdf": "gofa_with_scene.ros2_control.urdf.xacro (含 table+block)",
             "srdf": "gofa_with_scene.srdf (含 table+block collision matrix)",
-            "ompl_yaml": "ompl_with_scene.yaml (含 workspace bounds + planner_configs)",
+            "ompl_yaml": "ompl_planning.yaml (B 路径 demo_with_scene.launch.py 加载, 标量 request_adapters; 嵌套结构 workspace_bounds/planner_configs 走 MoveIt 内部默认)",
             "mujoco_model": "gofa_table_block.xml (arm + table + block + suction)",
         },
         "l1_planning": l1_result,
