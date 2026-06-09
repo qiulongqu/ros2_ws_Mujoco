@@ -439,6 +439,40 @@ action_client.send_goal_async(goal)
 - 不要在 baseline 验证里直接用 `/plan_kinematic_path` 服务 — MoveIt 内部对 start state / workspace / collision 的初始化非常挑剔, 容易撞墙.
 - **推荐**: 用 action 客户端发 FollowJointTrajectory 直测 L3→L4, 用 RViz 手动 Plan+Execute 验证 L1 (GUI 帮你处理 start state).
 
+#### 5-14 B 路径深挖: 数值 IK 必须 clamp 到 URDF 限位 (2026-06-09)
+- **现象**: P5 demo_with_scene 跑 8 阶段拣放, 数值 IK 算出 `q_pick[1] = 1.81 rad` 超 GoFa `joint_2` 上限 1.5708 rad 达 0.24 rad.
+- **L3→L4 静默通过**: JTC 内部 clamp, 机械臂能跑, 误差看不出来.
+- **L1 MoveIt 拒绝**: "Joint joint_2 is constrained to be above the maximum bounds. Assuming maximum bounds instead" + OMPL "Skipping invalid start state".
+- **教训**:
+  1. 数值 IK (尤其是简化版, 不用 TRAC-IK/KDL) 输出**必须** clamp 到 URDF 关节限位. 不 clamp = 物理不可达点, MoveIt 严谨拒绝, JTC 静默接受.
+  2. GoFa joint_2 限位是 `-2.4435 ~ 1.5708` (前向限位, 区别于大多数 6-DOF 机械臂的 ±π).
+  3. 加 `JOINT_LIMITS` 常量 + `clamp_to_joint_limits(q)` 是必填.
+- **Why**: 关节限位是物理可达域的硬约束, IK 算解必须满足. L1 比 L3 严格是因为 OMPL 起点树对超限位直接拒绝, 不像 JTC 还有"模糊处理"空间.
+- **How to apply**: 任何简化 IK 函数最后一步都是 `return clamp_to_joint_limits(q)`. P4 IK 之所以不踩坑是因为它用 MuJoCo 真实几何 + MuJoCo 自带限位.
+
+#### 5-15 B 路径深挖: launch_ros 参数 normalize 限制 (2026-06-09)
+- **现象**: 想给 ompl_planning.yaml 加 `default_workspace_bounds: [[-2.0, 2.0], ...]` (list-of-floats) + `planner_configs: {RRTstark: {...}}` (nested dict), `yaml.safe_load → parameters=[dict]` 路径报 "Failed to normalize given item of type 'float'".
+- **根因**: ROS2 launch_ros 在 `parameters=[dict]` 路径下, 每个 leaf value 必须是 str/int/bool/Substitution. 嵌套 list/dict 内部含 float 时 normalize 失败.
+- **教训**:
+  1. 通过 yaml.safe_load 加载的 yaml 内容**不能含嵌套结构** (list-of-floats, dict-of-dicts). 标量 ok.
+  2. 嵌套 OMPL 参数 (`default_workspace_bounds`, `planner_configs`) 必须用其他方式注入:
+     - `ParameterFile(path)` 让 move_group 自己读 yaml (但 yaml 必须 ROS2 格式有 `/**: ros__parameters:`, OMPL 原生 yaml 不匹配)
+     - 或在 planning request 里设 `workspace_parameters` 字段 (走 `FixWorkspaceBounds` adapter)
+  3. move_group 内部对 `default_workspace_bounds` 缺失有 fallback — 没显式 set 时, OMPL 仍能 init start tree, 只是 sampling 范围用 joint limits 推断.
+- **Why**: launch_ros 早期设计是给"扁平标量 ROS2 参数"用的, 嵌套结构是 MoveIt 后续才加的, 兼容性不好.
+- **How to apply**: yaml 配置 move_group 时, 标量走 safe_load, 嵌套走 request 字段或单独 yaml 自己加载.
+
+#### 5-16 B 路径深挖: MuJoCo + MoveIt TF jump back 时间同步坑 (2026-06-09)
+- **现象**: MoveIt current_state_monitor 报 "Detected jump back in time. Clearing TF buffer", 紧接着 OMPL "Skipping invalid start state (invalid state)".
+- **根因**: MuJoCo 仿真启动/reset 时仿真时间跳回 0, ROS2 wall time 继续走, TF buffer 检测到时间倒退, 清空. MoveIt current state monitor 短暂失效, 给 OMPL 的 start state 反映不出真实状态.
+- **L1 失败**: `is_diff=False` (显式传 joint_state) 和 `is_diff=True` (用 current_state_monitor) 都失败 — 根因都是 TF jump back 引起的 state 失同步.
+- **教训**:
+  1. headless script 验证 L1 是不稳定的 — CLAUDE.md 5-13 早就标记过这个限制, 这次 B 路径再次验证.
+  2. 想稳定验证 L1, 必须在 RViz GUI 里手动 Plan (GUI 帮你处理 start state 同步), 或跳过 L1 直测 L3→L4.
+  3. "There may be more than one action server" 警告也是同样原因 — 同一物理接口在多个 launch 进程里注册, 需要 `unload` 一个再 `load` 另一个 (CLAUDE.md 5-06).
+- **Why**: 仿真器 + MoveIt + ROS2 TF 三层时间源不严格同步, 启动瞬间总会有抖动.
+- **How to apply**: B 路径 demo 验收以 L3→L4 PASS 为准, L1 标 best-effort, evidence 里诚实记录 limitation, 不掩盖问题.
+
 ---
 
 ## 实战原则 (跨阶段)
