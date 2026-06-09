@@ -23,7 +23,7 @@
 | **P2** | ROS2 + MuJoCo 桥接 | ✅ 完成 | 开环 + 订阅/发布 + 双向桥接 4 步全过 |
 | **P3** | 机械臂模型 (GoFa CRB15000) | ✅ 完成 | 6-DOF XML + PTP 5 目标稳态误差 < 2° |
 | **P4** | 拣放操作 (Pick-and-Place) | ✅ 完成 | 8 阶段状态机 + IK, 终点 15mm, 关节最大跟踪 1.7° |
-| **P5** | MoveIt2 学习 | 🟡 进行中 | JTC baseline 闭环 (2026-06-09), 概念笔记待补 |
+| **P5** | MoveIt2 学习 | 🟡 进行中 | JTC baseline + A2 端到端闭环 (2026-06-09), 概念笔记 + L1 规划待修 |
 
 ---
 
@@ -196,9 +196,11 @@ WSL2 (无论 WSLg 还是 VcXsrv) 下 MuJoCo viewer 窗口可能黑屏, 但保存
 > 完整 TaskList 通过 Claude Code `TaskList` 工具查看. 核心待办:
 
 - [ ] **P4 viewer 模式实测** — `--view` 模式下 quintic 插值未人工确认 (test 模式已验)
-- [ ] **P5 baseline 已闭环 (2026-06-09)** — JTC + move_group 配置 + 启动验证全过, 详见 `p5_moveit2_learning/docs/troubleshooting/0001_JTC_blocking_point.md`
+- [x] **P5 baseline 闭环 (2026-06-09)** — JTC + move_group 配置 + 启动验证全过
+- [x] **P5 A2 端到端验证 (2026-06-09)** — L3→L4 直测 PASS (5 waypoint 7.5s 轨迹, 终点误差 0.43°)
+- [ ] **P5 L1 规划修复** — `/plan_kinematic_path` 当前 "Skipping invalid start state", 改用 `/move_action` 高层接口
 - [ ] **P5 概念笔记** — 读 MoveIt2 官方 5 篇概念文档, 写 `p5_moveit2_learning/docs/concept_notes/`
-- [ ] **P5 RViz 端到端** — `move_group.launch.py` + RViz 中 Plan + Execute 一次, 截图存 `resources/p5/`
+- [ ] **P5 RViz 端到端** — RViz 中 Plan + Execute 一次, 截图存 `resources/p5/`
 
 ---
 

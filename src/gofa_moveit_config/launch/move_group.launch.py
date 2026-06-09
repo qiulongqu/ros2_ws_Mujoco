@@ -16,6 +16,8 @@ P5 修复: 加载 ompl_planning.yaml + joint_limits.yaml, xacro 解析风格
 
 import os
 
+import yaml
+
 from launch import LaunchDescription
 from launch.actions import OpaqueFunction
 from launch.substitutions import (

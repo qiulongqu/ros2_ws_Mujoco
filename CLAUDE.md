@@ -413,7 +413,31 @@ P4 (当前):                                  P5 (目标):
 - [x] `/joint_states` 50Hz 发布 6 个 joint
 - [x] `/abb_controller/follow_joint_trajectory` action server 在线
 - [x] MuJoCo 6 joint position control enabled
-- [ ] **未验证**: 完整 `move_group.launch.py` + RViz 中 Plan + Execute (A 阶段补概念后再做)
+- [x] **A2 端到端 (2026-06-09)**: 启动 `move_group.launch.py` 完整规划节点, /move_group /move_action /execute_trajectory action 全在线. L3→L4 直测 (5 waypoint, 7.5s 轨迹) PASS, 终点误差 0.43°.
+
+#### 5-11 L1 规划初次集成常见 3 坑 (2026-06-09)
+1. **`pipeline_id` 不要写 "ompl"**: move_group 自动注册 pipeline 时用 launch 配置的 key, 不是 yaml 里的 `planning_plugin` 名. 默认空字符串即可.
+2. **`start_state.is_diff = True` + 空 joint_state**: MoveIt 会自动取当前 planning scene state, 但需要 `workspace_parameters` 已经设了.
+3. **OMPL "Skipping invalid start state" 9 成是配置问题**: 不是 IK 算不出, 而是 joint name 顺序 / joint limit 边界 / workspace volume 缺失. 短期 workaround: 改用 `/move_action` 高层接口, 长期: 完善 `ompl_planning.yaml` 的 `planner_configs` 和 `default_workspace_bounds`.
+
+#### 5-12 L3→L4 端到端验证的最小可行路径 (2026-06-09)
+不依赖 moveit_py / moveit_commander, 用 rclpy + `control_msgs.action.FollowJointTrajectory` 就能验证 L3→L4 闭环:
+```python
+goal = FollowJointTrajectory.Goal()
+goal.trajectory.joint_names = ["joint_1", ..., "joint_6"]
+for i, wp in enumerate(waypoints):
+    point = JointTrajectoryPoint()
+    point.positions = wp
+    point.time_from_start.sec = (i+1) * 1.5
+    goal.trajectory.points.append(point)
+action_client.send_goal_async(goal)
+```
+- 优势: 零额外依赖, 直接测 JTC + ros2_control + MuJoCo
+- 适用: Phase 1 验证 L3/L4 链路, Phase 2 验证 L1 规划
+
+#### 5-13 验证脚本要避开 L1 复杂依赖 (2026-06-09)
+- 不要在 baseline 验证里直接用 `/plan_kinematic_path` 服务 — MoveIt 内部对 start state / workspace / collision 的初始化非常挑剔, 容易撞墙.
+- **推荐**: 用 action 客户端发 FollowJointTrajectory 直测 L3→L4, 用 RViz 手动 Plan+Execute 验证 L1 (GUI 帮你处理 start state).
 
 ---
 

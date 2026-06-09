@@ -158,7 +158,9 @@ User → RViz MotionPlanning / MoveGroup API
 ## 学习检查清单
 
 - [x] **Phase 3 baseline (2026-06-09)**: JTC + move_group.launch.py 配置闭环, controllers 全 active, action server 在线. 详见 `docs/troubleshooting/0001_JTC_blocking_point.md` 和 CLAUDE.md 5-06~5-10.
+- [x] **A2 端到端验证 (2026-06-09)**: 启动 `move_group.launch.py` 完整规划节点 + L3→L4 直测 PASS, 5 waypoint 7.5s 轨迹终点误差 0.43°. 详见 `docs/troubleshooting/0002_A2_e2e_validation.md` 和 CLAUDE.md 5-11~5-13.
 - [ ] Phase 1: 阅读完所有概念文档并做笔记
+- [ ] Phase 1.5: L1 规划修复 (改用 `/move_action` 高层接口, 当前 `/plan_kinematic_path` 报 "Skipping invalid start state")
 - [ ] Phase 2: 跑通所有官方 C++ 和 Python 教程
 - [ ] Phase 3: GoFa + MoveIt2 集成成功，RViz 中可 Plan + Execute
 - [ ] Phase 3: 碰撞物体避障规划验证通过
@@ -175,14 +177,18 @@ User → RViz MotionPlanning / MoveGroup API
 
 ## 进度快照 (2026-06-09)
 
-**已完成 (B 阶段 baseline 闭环)**:
+**已完成 (B 阶段 baseline 闭环 + A2 端到端)**:
 - ✅ `abb_controller` (JTC) 配置 + spawn
 - ✅ `move_group.launch.py` 加载 ompl_planning.yaml + joint_limits.yaml + 统一 xacro 风格
 - ✅ `ros2 control list_controllers` 验证全 active
 - ✅ `/joint_states` 50Hz 发布 6 joint
 - ✅ `/abb_controller/follow_joint_trajectory` action server 在线
+- ✅ `/move_group` 节点 + `/move_action` + `/execute_trajectory` action 在线
+- ✅ L3→L4 端到端 (5 waypoint, 7.5s 轨迹, 终点误差 0.43°)
+- ❌ L1 MoveIt 规划 (跳过, 短期用 L3→L4 直测验证, 长期用 `/move_action` 修)
 
 **下一步 (A 阶段概念补全)**:
 - 读 MoveIt2 官方 5 篇概念文档, 写 `docs/concept_notes/*.md`
-- 启动 `move_group.launch.py` + RViz, 验证 Plan + Execute 一次, 截图存 `resources/p5/`
+- L1 规划修复 (Phase 1.5)
 - Phase 2 官方 tutorial (需 `apt install ros-humble-moveit2-tutorials`)
+- Phase 3 RViz 端到端 (GUI 帮你处理 start state)
